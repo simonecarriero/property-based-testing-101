@@ -57,6 +57,8 @@ pub enum Transaction {
 #[cfg(test)]
 mod tests {
     use crate::wallet::{Operation, Transaction, Wallet};
+    use quickcheck::QuickCheck;
+    use quickcheck::{Gen, StdThreadGen};
 
     #[test]
     fn buy_some_stock() {
@@ -96,5 +98,47 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Not enough stock to sell");
         assert_eq!(wallet.quantity, 0);
+    }
+
+    #[test]
+    fn property_wallet_quantity_is_never_negative() {
+        fn property(operation: Operation) -> bool {
+            let mut wallet = Wallet::new();
+            wallet.execute(&operation).ok();
+            wallet.quantity >= 0
+        }
+
+        quickcheck().quickcheck(property as fn(Operation) -> bool);
+    }
+
+    fn quickcheck() -> QuickCheck<StdThreadGen> {
+        QuickCheck::new().gen(StdThreadGen::new(u16::max_value() as usize))
+    }
+
+    impl quickcheck::Arbitrary for Transaction {
+        fn arbitrary<G: Gen>(g: &mut G) -> Self {
+            let quantity = u16::arbitrary(g);
+            match bool::arbitrary(g) {
+                true => Transaction::Buy { quantity },
+                false => Transaction::Sell {
+                    quantity: quantity / 100,
+                },
+            }
+        }
+    }
+
+    impl quickcheck::Arbitrary for Operation {
+        fn arbitrary<G: Gen>(g: &mut G) -> Self {
+            let mut transactions = vec![];
+            let number_of_transactions = u16::arbitrary(g) / 1000;
+            let mut count = 0;
+
+            while count < number_of_transactions {
+                transactions.push(Transaction::arbitrary(g));
+                count += 1;
+            }
+
+            Operation(transactions)
+        }
     }
 }
