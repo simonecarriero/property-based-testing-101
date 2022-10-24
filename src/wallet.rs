@@ -125,6 +125,16 @@ mod tests {
                 },
             }
         }
+        fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+            match self {
+                Transaction::Buy { quantity } => {
+                    Box::new(quantity.shrink().map(|q| Transaction::Buy { quantity: q }))
+                }
+                Transaction::Sell { quantity } => {
+                    Box::new(quantity.shrink().map(|q| Transaction::Sell { quantity: q }))
+                }
+            }
+        }
     }
 
     impl quickcheck::Arbitrary for Operation {
@@ -139,6 +149,9 @@ mod tests {
             }
 
             Operation(transactions)
+        }
+        fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+            Box::new(self.0.shrink().map(|x| Operation(x)))
         }
     }
 }
