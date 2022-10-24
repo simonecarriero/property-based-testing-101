@@ -1,3 +1,5 @@
+use anyhow::anyhow;
+
 #[derive(Clone, Debug)]
 struct Wallet {
     quantity: i16,
@@ -24,6 +26,9 @@ impl Wallet {
     }
 
     fn sell(&mut self, quantity: u16) -> Result<(), anyhow::Error> {
+        if quantity > self.quantity as u16 {
+            return Err(anyhow!("Not enough stock to sell"));
+        }
         self.quantity -= quantity as i16;
         Ok(())
     }
@@ -65,5 +70,19 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 5);
+    }
+
+    #[test]
+    fn fail_when_selling_more_than_owned() {
+        let mut wallet = Wallet::new();
+        let operation = Operation(vec![
+            Transaction::Buy { quantity: 5 },
+            Transaction::Sell { quantity: 7 },
+        ]);
+
+        let result = wallet.execute(&operation);
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Not enough stock to sell");
     }
 }
