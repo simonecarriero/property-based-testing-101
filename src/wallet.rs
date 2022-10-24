@@ -11,12 +11,23 @@ impl Wallet {
     }
 
     pub fn execute(&mut self, operation: &Operation) -> Result<i16, anyhow::Error> {
-        for transaction in &operation.0 {
-            match transaction {
-                Transaction::Buy { quantity } => self.buy(*quantity)?,
-                Transaction::Sell { quantity } => self.sell(*quantity)?,
+        let initial_quantity = self.quantity;
+
+        let result = (|| {
+            for transaction in &operation.0 {
+                match transaction {
+                    Transaction::Buy { quantity } => self.buy(*quantity)?,
+                    Transaction::Sell { quantity } => self.sell(*quantity)?,
+                }
             }
+            Ok(())
+        })();
+
+        if let Err(e) = result {
+            self.quantity = initial_quantity;
+            return Err(e);
         }
+
         Ok(self.quantity)
     }
 
@@ -84,5 +95,6 @@ mod tests {
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Not enough stock to sell");
+        assert_eq!(wallet.quantity, 0);
     }
 }
