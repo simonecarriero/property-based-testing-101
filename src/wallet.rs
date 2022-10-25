@@ -2,7 +2,7 @@ use anyhow::anyhow;
 
 #[derive(Clone, Debug)]
 struct Wallet {
-    quantity: i16,
+    quantity: Quantity,
 }
 
 impl Wallet {
@@ -10,7 +10,7 @@ impl Wallet {
         Wallet { quantity: 0 }
     }
 
-    pub fn execute(&mut self, operation: &Operation) -> Result<i16, anyhow::Error> {
+    pub fn execute(&mut self, operation: &Operation) -> Result<Quantity, anyhow::Error> {
         let initial_quantity = self.quantity;
 
         let result = (|| {
@@ -32,7 +32,7 @@ impl Wallet {
     }
 
     fn buy(&mut self, quantity: u16) -> Result<(), anyhow::Error> {
-        self.quantity += quantity as i16;
+        self.quantity += quantity as Quantity;
         Ok(())
     }
 
@@ -40,7 +40,7 @@ impl Wallet {
         if quantity > self.quantity as u16 {
             return Err(anyhow!("Not enough stock to sell"));
         }
-        self.quantity -= quantity as i16;
+        self.quantity -= quantity as Quantity;
         Ok(())
     }
 }
@@ -53,6 +53,8 @@ pub enum Transaction {
     Buy { quantity: u16 },
     Sell { quantity: u16 },
 }
+
+type Quantity = i16;
 
 #[cfg(test)]
 mod tests {
